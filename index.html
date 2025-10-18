@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IPB FA2 ST44/46 设备故障诊断与处理</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1800px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(90deg, #4b6cb7 0%, #182848 100%);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            color: white;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .search-container {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 300px;
+        }
+        
+        .search-box {
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            padding: 8px 15px;
+            align-items: center;
+        }
+        
+        .search-box input {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 5px 10px;
+            width: 100%;
+            font-size: 1rem;
+            outline: none;
+        }
+        
+        .search-box input::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .search-box i {
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+        }
+        
+        .tree-container, .info-container {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            transition: transform 0.3s ease;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .tree-container {
+            position: relative;
+        }
+        
+        .tree-container:hover, .info-container:hover {
+            transform: translateY(-5px);
+        }
+        
+        .section-title {
+            font-size: 1.8rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .tree {
+            list-style: none;
+            padding-left: 0;
+        }
+        
+        .tree ul {
+            list-style: none;
+            padding-left: 30px;
+            margin: 10px 0;
+            display: none; /* 初始隐藏所有子节点 */
+        }
+        
+        .tree li {
+            margin: 12px 0;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .tree li:before {
+            content: "";
+            position: absolute;
+            top: 12px;
+            left: -20px;
+            width: 15px;
+            height: 2px;
+            background: #3498db;
+        }
+        
+        .tree li:after {
+            content: "";
+            position: absolute;
+            top: -8px;
+            left: -20px;
+            width: 2px;
+            height: 100%;
+            background: #3498db;
+        }
+        
+        .tree li:last-child:after {
+            height: 20px;
+        }
+        
+        .node {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 12px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .node:hover {
+            background: #e3f2fd;
+            border-color: #bbdefb;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        .node i {
+            font-size: 1.2rem;
+            color: #3498db;
+        }
+        
+        .node-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .node.active {
+            background: #d1ecff;
+            border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+        }
+        
+        .b1-node {
+            background: #fff8e1;
+            border-color: #ffd54f;
+        }
+        
+        .b1-node:hover {
+            background: #ffecb3;
+        }
+        
+        .b1-node.active {
+            background: #fff176;
+            box-shadow: 0 0 0 3px rgba(255, 213, 79, 0.3);
+        }
+        
+        /* 措施展示区域 */
+        .info-display {
+            padding: 20px;
+            line-height: 1.6;
+            overflow-y: auto;
+            max-height: 350px;
+        }
+        
+        .info-display h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        
+        .info-display ul {
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        
+        .info-display li {
+            margin-bottom: 8px;
+        }
+        
+        .info-display p {
+            margin-bottom: 10px;
+        }
+        
+        /* 措施信息框样式 */
+        .info-section {
+            margin-bottom: 25px;
+        }
+        
+        .info-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 1.3rem;
+        }
+        
+        .info-content {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 25px;
+            font-size: 0.95rem;
+        }
+        
+        .info-box h3 {
+            margin-bottom: 8px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .instructions li {
+            margin: 8px 0;
+        }
+        
+        .no-results {
+            color: #e74c3c;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+        
+        .placeholder-text {
+            text-align: center;
+            color: #7f8c8d;
+            padding: 40px 20px;
+        }
+        
+        .placeholder-text i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #bdc3c7;
+        }
+        
+        .placeholder-text p {
+            font-size: 1.2rem;
+        }
+        
+        .image-container {
+            margin: 15px 0;
+            text-align: center;
+        }
+        
+        .image-container img {
+            max-width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .image-container img:hover {
+            transform: scale(1.02);
+        }
+        
+        .image-caption {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-top: 8px;
+            font-style: italic;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #3498db;
+        }
+        
+        .loading i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            .section-title {
+                font-size: 1.5rem;
+            }
+            
+            .search-container {
+                position: static;
+                transform: none;
+                width: 100%;
+                margin-top: 15px;
+            }
+            
+            header {
+                padding-bottom: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-tools"></i> IPB FA2 ST44/46 设备故障诊断与处理</h1>
+            <div class="subtitle">设备故障类别、失效项与处理措施</div>
+            <div class="search-container">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="搜索故障类别、失效项...">
+                </div>
+            </div>
+        </header>
+        
+        <div class="content">
+            <div class="tree-container">
+                <h2 class="section-title"><i class="fas fa-sitemap"></i>故障分类树</h2>
+                <div class="loading" id="treeLoading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <p>加载中...</p>
+                </div>
+                <div class="no-results" id="noResults">未找到匹配的故障项</div>
+                <ul class="tree" id="faultTree">
+                    <!-- 树结构将通过JavaScript动态生成 -->
+                </ul>
+            </div>
+            
+            <div class="info-container">
+                <h2 class="section-title"><i class="fas fa-clipboard-list"></i>故障处理信息</h2>
+                <div class="info-display" id="infoDisplay">
+                    <div class="placeholder-text">
+                        <i class="fas fa-hand-pointer"></i>
+                        <p>请从左侧树状图中选择一个故障项</p>
+                    </div>
+                </div>
+                <div class="info-box">
+                    <h3><i class="fas fa-info-circle"></i>注意！</h3>
+                    <p>1. 气动过程如遇列表中未出现的失效，对于2B项，先更换对应的失效口工装，再直接盲板测试阀泄漏</p>
+                    <p>2. 如遇failure memory，列表中未出现的先查看excel failure memory，确认是否是磁阀线圈电阻问题，如不是更换所Pin</p>
+                    <p>3. 此页面仅作参考，可靠内容见FTA。<br>最新更新于2025.9.6</p>
+                </div>
+                <div class="info-box">
+                    <h3><i class="fas fa-info-circle"></i>使用说明</h3>
+                    <p>1. 点击左侧树状结构中的故障项查看详细信息</p>
+                    <p>2. 点击文件夹图标可展开/折叠子目录</p>
+                    <p>3. 在搜索框中输入故障类别或失效项可快速定位</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 故障诊断系统主类
+        class FaultDiagnosisSystem {
+            constructor() {
+                this.treeData = null;
+                this.currentNode = null;
+                this.init();
+            }
+            
+            // 初始化系统
+            async init() {
+                // 显示加载状态
+                this.showLoading(true);
+                
+                try {
+                    // 加载主JSON文件
+                    await this.loadMainJSON();
+                    
+                    // 构建树结构
+                    this.buildTree();
+                    
+                    // 初始化事件监听
+                    this.initEventListeners();
+                    
+                    // 隐藏加载状态
+                    this.showLoading(false);
+                } catch (error) {
+                    console.error('初始化失败:', error);
+                    this.showLoading(false);
+                    alert('加载故障数据失败，请刷新页面重试');
+                }
+            }
+            
+            // 显示/隐藏加载状态
+            showLoading(show) {
+                const loadingElement = document.getElementById('treeLoading');
+                loadingElement.style.display = show ? 'block' : 'none';
+            }
+            
+            // 加载主JSON文件
+            async loadMainJSON() {
+                try {
+                    const response = await fetch('./data/main.json');
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    this.treeData = await response.json();
+                } catch (error) {
+                    console.error('加载主JSON失败:', error);
+                    throw error;
+                }
+            }
+            
+            // 递归加载子JSON文件
+            async loadChildJSON(path) {
+                try {
+                    const response = await fetch(`./data/${path}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error(`加载子JSON失败: ${path}`, error);
+                    return null;
+                }
+            }
+            
+            // 构建树结构
+            buildTree() {
+                const treeElement = document.getElementById('faultTree');
+                treeElement.innerHTML = '';
+                
+                if (!this.treeData || !this.treeData.categories) {
+                    treeElement.innerHTML = '<li>暂无故障数据</li>';
+                    return;
+                }
+                
+                // 递归构建树节点
+                this.buildTreeNode(this.treeData.categories, treeElement, 0);
+            }
+            
+            // 递归构建树节点
+            buildTreeNode(categories, parentElement, level) {
+                categories.forEach(category => {
+                    const li = document.createElement('li');
+                    
+                    // 创建节点
+                    const node = document.createElement('div');
+                    node.className = 'node';
+                    node.setAttribute('data-id', category.id);
+                    
+                    // 添加图标
+                    const icon = document.createElement('i');
+                    if (category.children && category.children.length > 0) {
+                        // 文件夹节点
+                        icon.className = 'fas fa-folder';
+                        node.appendChild(icon);
+                    } else {
+                        // 叶子节点
+                        icon.className = 'fas fa-file-medical';
+                        node.appendChild(icon);
+                    }
+                    
+                    // 添加文本
+                    const text = document.createElement('span');
+                    text.className = 'node-text';
+                    text.textContent = category.name;
+                    node.appendChild(text);
+                    
+                    li.appendChild(node);
+                    
+                    // 如果有子节点，递归构建
+                    if (category.children && category.children.length > 0) {
+                        const childUl = document.createElement('ul');
+                        this.buildTreeNode(category.children, childUl, level + 1);
+                        li.appendChild(childUl);
+                    }
+                    
+                    parentElement.appendChild(li);
+                });
+            }
+            
+            // 初始化事件监听
+            initEventListeners() {
+                const treeElement = document.getElementById('faultTree');
+                const searchInput = document.getElementById('searchInput');
+                const noResultsElement = document.getElementById('noResults');
+                
+                // 节点点击事件
+                treeElement.addEventListener('click', (e) => {
+                    const node = e.target.closest('.node');
+                    if (!node) return;
+                    
+                    e.stopPropagation();
+                    
+                    // 处理节点点击
+                    this.handleNodeClick(node);
+                });
+                
+                // 搜索功能
+                searchInput.addEventListener('input', (e) => {
+                    const searchTerm = e.target.value.toLowerCase().trim();
+                    this.searchTree(searchTerm);
+                    
+                    // 显示/隐藏无结果消息
+                    const hasResults = this.hasSearchResults(searchTerm);
+                    noResultsElement.style.display = hasResults ? 'none' : 'block';
+                });
+            }
+            
+            // 处理节点点击
+            async handleNodeClick(node) {
+                // 移除所有节点的active类
+                document.querySelectorAll('.node').forEach(n => n.classList.remove('active'));
+                
+                // 为当前节点添加active类
+                node.classList.add('active');
+                
+                const nodeId = node.getAttribute('data-id');
+                
+                // 如果是文件夹节点，切换展开/折叠
+                const icon = node.querySelector('i');
+                if (icon.classList.contains('fa-folder') || icon.classList.contains('fa-folder-open')) {
+                    const childList = node.parentElement.querySelector('ul');
+                    if (childList) {
+                        if (childList.style.display === 'none' || !childList.style.display) {
+                            childList.style.display = 'block';
+                            icon.classList.remove('fa-folder');
+                            icon.classList.add('fa-folder-open');
+                        } else {
+                            childList.style.display = 'none';
+                            icon.classList.remove('fa-folder-open');
+                            icon.classList.add('fa-folder');
+                        }
+                    }
+                }
+                
+                // 加载并显示节点详情
+                await this.loadNodeDetails(nodeId);
+            }
+            
+            // 加载节点详情
+            async loadNodeDetails(nodeId) {
+                // 在实际应用中，这里会根据nodeId加载对应的JSON文件
+                // 这里使用模拟数据
+                const nodeData = this.getMockNodeData(nodeId);
+                
+                if (!nodeData) {
+                    this.displayNoData();
+                    return;
+                }
+                
+                this.displayNodeDetails(nodeData);
+            }
+            
+            // 获取模拟节点数据（实际应用中会从JSON文件加载）
+            getMockNodeData(nodeId) {
+                // 模拟数据 - 实际应用中会从对应的JSON文件加载
+                const mockData = {
+                    '1-1': {
+                        name: '铝丝/油壶工装-专项',
+                        measures: `1 待复测件流转下去，再点Auto stop 开门 
+
+2 无需拆工装，使用无尘布清洁PRV黑色密封圈后继续生产 
+
+3 无效后更换油壶工装 
+（更换Res工装如失效项发生变化，需要再更换一次备件工装(公共备件或其它产线备件)，优先使用验收过的工装，同时清洁Res工装在设备上的安装孔） 
+
+4 第1次换下来的工装整体清洁一遍，同时更换黑色密封圈，待验收后使用，如无公共备件或其它产线备件更换，可提前换上使用。 
+
+5 如该问题当班发生2次及以上，需要找TEF利用停机时间清洁Res3OS(507)通道过滤芯，如未清洁，要交接下去，并上报工程师。`,
+                        rootCause: '工装PRV口粘铝丝/密封圈损坏',
+                        images: [
+                            {
+                                src: './images/故障1.jpg',
+                                caption: '工装PRV口示意图'
+                            }
+                        ],
+                        notes: '此问题为近期重点关注项，需优先处理'
+                    },
+                    '1-2': {
+                        name: '工装/高压阀/O型圈',
+                        measures: `1.优先更换WC工装，再更换Res工装 
+
+（更换Res工装如失效项发生明显变化，需要再更换一次备件工装(公共备件或其它产线备件)，优先使用验收过的工装，同时清洁Res工装在设备上的安装孔） 
+
+2.盲板检查503或504和508 通道泄漏，那个通道漏 
+
+量大，先解决该通道密封性 
+
+3.如盲板测试无泄漏，则更换508高压阀底座的O型圈（F02E.ST0.101,线边备件盒）`,
+                        rootCause: `1.工装泄漏 
+
+2.503/504/508高压阀其中某个高压阀泄漏 
+
+3.508高压阀底座密封圈损坏 
+
+备注： 
+
+1 PRV外泄，不仅仅是PRV口的泄漏，A3/A4口泄漏表现出来的不良也有可能是PRV口 
+
+2 如果PRV和A3/A4同时出现外泄，则优先处理A3/A4的问题`,
+                        images: [
+                            {
+                                src: './images/故障2.png',
+                                caption: '高压阀底座O型圈位置'
+                            }
+                        ],
+                        notes: '处理前需确认设备已断电'
+                    }
+                };
+                
+                return mockData[nodeId];
+            }
+            
+            // 显示节点详情
+            displayNodeDetails(nodeData) {
+                const infoDisplay = document.getElementById('infoDisplay');
+                
+                // 构建图片HTML
+                let imagesHTML = '';
+                if (nodeData.images && nodeData.images.length > 0) {
+                    imagesHTML = nodeData.images.map(img => `
+                        <div class="image-container">
+                            
+                            <div class="image-caption">${img.caption}</div>
+                        </div>
+                    `).join('');
+                }
+                
+                // 构建注意事项HTML
+                let notesHTML = '';
+                if (nodeData.notes) {
+                    notesHTML = `
+                        <div class="info-section">
+                            <h3 class="info-header"><i class="fas fa-exclamation-triangle"></i>注意事项</h3>
+                            <div class="info-content">
+                                ${nodeData.notes}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                infoDisplay.innerHTML = `
+                    <div class="info-section">
+                        <h3 class="info-header"><i class="fas fa-tools"></i>维修措施</h3>
+                        <div class="info-content">
+                            ${nodeData.measures.replace(/\n/g, '<br>')}
+                            ${imagesHTML}
+                        </div>
+                    </div>
+                    
+                    <div class="info-section">
+                        <h3 class="info-header"><i class="fas fa-search"></i>根本原因</h3>
+                        <div class="info-content">
+                            ${nodeData.rootCause.replace(/\n/g, '<br>')}
+                        </div>
+                    </div>
+                    
+                    ${notesHTML}
+                    
+                    <div class="info-section">
+                        <h3 class="info-header"><i class="fas fa-lightbulb"></i>维修建议</h3>
+                        <div class="info-content">
+                            <ul>
+                                <li>执行维修措施前，请先确认故障现象是否一致</li>
+                                <li>处理高压部件时，请确保设备已断电且压力释放</li>
+                                <li>更换部件后需进行功能测试</li>
+                                <li>如维修后问题仍存在，请升级报告</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // 显示无数据
+            displayNoData() {
+                const infoDisplay = document.getElementById('infoDisplay');
+                infoDisplay.innerHTML = `
+                    <div class="placeholder-text">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <p>暂无此故障项的详细信息</p>
+                    </div>
+                `;
+            }
+            
+            // 搜索树结构
+            searchTree(searchTerm) {
+                if (!searchTerm) {
+                    // 清空搜索，显示所有节点
+                    document.querySelectorAll('.tree li').forEach(li => {
+                        li.style.display = 'list-item';
+                    });
+                    return;
+                }
+                
+                const nodes = document.querySelectorAll('.node');
+                let found = false;
+                
+                nodes.forEach(node => {
+                    const nodeText = node.querySelector('.node-text').textContent.toLowerCase();
+                    const li = node.closest('li');
+                    
+                    if (nodeText.includes(searchTerm)) {
+                        // 显示匹配的节点
+                        li.style.display = 'list-item';
+                        
+                        // 展开所有父节点
+                        this.expandParentNodes(li);
+                        
+                        // 显示所有子节点
+                        this.showAllChildren(li);
+                        
+                        found = true;
+                    } else {
+                        // 检查子节点是否匹配
+                        const childMatches = this.checkChildrenMatch(li, searchTerm);
+                        if (childMatches) {
+                            li.style.display = 'list-item';
+                            this.expandParentNodes(li);
+                            found = true;
+                        } else {
+                            li.style.display = 'none';
+                        }
+                    }
+                });
+                
+                return found;
+            }
+            
+            // 检查子节点是否匹配搜索条件
+            checkChildrenMatch(li, searchTerm) {
+                const childNodes = li.querySelectorAll('.node');
+                for (let i = 0; i < childNodes.length; i++) {
+                    const nodeText = childNodes[i].querySelector('.node-text').textContent.toLowerCase();
+                    if (nodeText.includes(searchTerm)) {
+                        return true;
+                    }
+                    
+                    // 递归检查子节点的子节点
+                    const childLi = childNodes[i].closest('li');
+                    if (childLi && this.checkChildrenMatch(childLi, searchTerm)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+            
+            // 展开父节点
+            expandParentNodes(li) {
+                let parentLi = li.parentElement.closest('li');
+                while (parentLi) {
+                    parentLi.style.display = 'list-item';
+                    const parentNode = parentLi.querySelector('.node');
+                    const parentIcon = parentNode.querySelector('i');
+                    const childList = parentNode.nextElementSibling;
+                    
+                    if (childList && childList.tagName === 'UL') {
+                        childList.style.display = 'block';
+                        if (parentIcon.classList.contains('fa-folder')) {
+                            parentIcon.classList.remove('fa-folder');
+                            parentIcon.classList.add('fa-folder-open');
+                        }
+                    }
+                    
+                    parentLi = parentLi.parentElement.closest('li');
+                }
+            }
+            
+            // 显示所有子节点
+            showAllChildren(li) {
+                const childUl = li.querySelector('ul');
+                if (childUl) {
+                    childUl.style.display = 'block';
+                    const childNodes = childUl.querySelectorAll('li');
+                    childNodes.forEach(childLi => {
+                        childLi.style.display = 'list-item';
+                        this.showAllChildren(childLi);
+                    });
+                    
+                    // 更新图标
+                    const icon = li.querySelector('.node i');
+                    if (icon && icon.classList.contains('fa-folder')) {
+                        icon.classList.remove('fa-folder');
+                        icon.classList.add('fa-folder-open');
+                    }
+                }
+            }
+            
+            // 检查是否有搜索结果
+            hasSearchResults(searchTerm) {
+                if (!searchTerm) return true;
+                
+                const nodes = document.querySelectorAll('.node');
+                for (let i = 0; i < nodes.length; i++) {
+                    const nodeText = nodes[i].querySelector('.node-text').textContent.toLowerCase();
+                    if (nodeText.includes(searchTerm)) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+        
+        // 页面加载完成后初始化系统
+        document.addEventListener('DOMContentLoaded', () => {
+            new FaultDiagnosisSystem();
+        });
+    </script>
+</body>
+</html>
